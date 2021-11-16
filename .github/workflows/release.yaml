@@ -1,0 +1,50 @@
+name: policy-build-release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+    - '*'
+
+jobs:
+  release_policy:
+    runs-on: ubuntu-latest
+    name: build
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Read config
+      id: config
+      uses: CumulusDS/get-yaml-paths-action@v0.1.1
+      with:
+        file: .github/config.yaml
+        username: username
+        repo: repo
+
+    - name: Policy Login
+      id: policy-login
+      uses: opcr-io/policy-login-action@v1
+      env:
+        GITHUB_TOKEN: ${{ env.ASERTO_ENG_PUSH_KEY }}
+      with:
+        username: ${{ steps.config.outputs.username }}
+        password: "$GITHUB_TOKEN"
+
+    - name: Policy Build
+      id: policy-build
+      uses: opcr-io/policy-build-action@v1
+      with:
+        src: src
+        tag: ${{steps.config.outputs.repo }}:${{ steps.sver.outputs.version }}
+        revision: "$GITHUB_SHA"
+
+    - name: Policy Push
+      id: policy-push
+      uses: opcr-io/policy-push-action@v1
+      with:
+        tag: ${{ steps.config.outputs.repo }}:${{ steps.sver.outputs.version }}
+
+    - name: Policy Logout
+      id: policy-logout
+      uses: opcr-io/policy-logout-action@v1
